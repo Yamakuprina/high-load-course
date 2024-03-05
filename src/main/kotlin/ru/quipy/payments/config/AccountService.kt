@@ -1,18 +1,30 @@
 package ru.quipy.payments.config
 
-import org.slf4j.LoggerFactory
+import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
 import ru.quipy.payments.logic.ExternalServiceProperties
-import ru.quipy.payments.logic.PaymentExternalServiceImpl
 import java.util.concurrent.atomic.AtomicLong
 
 @Service
 class AccountService {
-    val accounts = ExternalServicesConfig.accounts.map { AccountWrapper(it) }
-    val logger = LoggerFactory.getLogger(AccountService::class.java)
+//    val accounts = ExternalServicesConfig.accounts.map { AccountWrapper(it) }
+//    @Async
+//    fun getAvailableAccount(): ExternalServiceProperties? {
+//        return accounts.filter { it.isAccountAvailable() }
+//            .minByOrNull { it.account.callCost }?.apply { this.registerRequest() }?.account
+//    }
+
+    val accounts = ExternalServicesConfig.accounts.sortedBy { it.callCost }.map { AccountWrapper(it) }
+    
+    @Async
     fun getAvailableAccount(): ExternalServiceProperties? {
-        return accounts.filter { it.isAccountAvailable() }
-            .minByOrNull { it.account.callCost }?.apply { this.registerRequest() }?.account
+        for (account in accounts) {
+            if (account.isAccountAvailable()) {
+                account.registerRequest()
+                return account.account
+            } else continue
+        }
+        return null
     }
 }
 
