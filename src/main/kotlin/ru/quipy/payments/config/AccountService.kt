@@ -7,24 +7,12 @@ import java.util.concurrent.atomic.AtomicLong
 
 @Service
 class AccountService {
-//    val accounts = ExternalServicesConfig.accounts.map { AccountWrapper(it) }
-//    @Async
-//    fun getAvailableAccount(): ExternalServiceProperties? {
-//        return accounts.filter { it.isAccountAvailable() }
-//            .minByOrNull { it.account.callCost }?.apply { this.registerRequest() }?.account
-//    }
+    val accounts = ExternalServicesConfig.accounts.map { AccountWrapper(it) }
 
-    val accounts = ExternalServicesConfig.accounts.sortedBy { it.callCost }.map { AccountWrapper(it) }
-    
     @Async
     fun getAvailableAccount(): ExternalServiceProperties? {
-        for (account in accounts) {
-            if (account.isAccountAvailable()) {
-                account.registerRequest()
-                return account.account
-            } else continue
-        }
-        return null
+        return accounts.filter { it.isAccountAvailable() }
+            .minByOrNull { it.account.callCost }?.apply { this.registerRequest() }?.account
     }
 }
 
