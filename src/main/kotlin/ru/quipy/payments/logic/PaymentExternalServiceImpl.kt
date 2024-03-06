@@ -34,7 +34,7 @@ class PaymentExternalServiceImpl(
     @Autowired
     private lateinit var paymentESService: EventSourcingService<UUID, PaymentAggregate, PaymentAggregateState>
 
-    private val httpClientExecutor = Executors.newFixedThreadPool(1024)
+    private val httpClientExecutor = Executors.newFixedThreadPool(128)
 
     private val client = OkHttpClient.Builder().run {
         dispatcher(Dispatcher(httpClientExecutor))
