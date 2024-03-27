@@ -4,13 +4,12 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import ru.quipy.payments.logic.ExternalServiceProperties
 import ru.quipy.payments.logic.PaymentExternalServiceImpl
+import ru.quipy.payments.logic.PaymentManager
 import java.time.Duration
 
 
 @Configuration
-class ExternalServicesConfig(
-    val accountService: AccountService
-) {
+class ExternalServicesConfig {
     companion object {
         const val PRIMARY_PAYMENT_BEAN = "PRIMARY_PAYMENT_BEAN"
 
@@ -19,22 +18,26 @@ class ExternalServicesConfig(
 
         private val accountProps_1 = ExternalServiceProperties(
             // most expensive. Call costs 100
+            // min = 100
+
             "test",
             "default-1",
             parallelRequests = 10000,
             rateLimitPerSec = 100,
             request95thPercentileProcessingTime = Duration.ofMillis(1000),
-            callCost = 100.0
+            cost = 100
         )
 
         private val accountProps_2 = ExternalServiceProperties(
             // Call costs 70
+            // min = 10
+
             "test",
             "default-2",
             parallelRequests = 100,
             rateLimitPerSec = 30,
             request95thPercentileProcessingTime = Duration.ofMillis(10_000),
-            callCost = 70.0
+            cost = 70
         )
 
         private val accountProps_3 = ExternalServiceProperties(
@@ -44,7 +47,7 @@ class ExternalServicesConfig(
             parallelRequests = 30,
             rateLimitPerSec = 8,
             request95thPercentileProcessingTime = Duration.ofMillis(10_000),
-            callCost = 40.0
+            cost = 40
         )
 
         // Call costs 30
@@ -54,15 +57,16 @@ class ExternalServicesConfig(
             parallelRequests = 8,
             rateLimitPerSec = 5,
             request95thPercentileProcessingTime = Duration.ofMillis(10_000),
-            callCost = 30.0
+            cost = 30
         )
 
-        val accounts = listOf(accountProps_1, accountProps_2, accountProps_3)
+        private val accounts = arrayListOf(accountProps_1, accountProps_2, accountProps_3, accountProps_4)
+
+        fun getAccounts(): ArrayList<ExternalServiceProperties> {
+            return accounts
+        }
     }
 
     @Bean(PRIMARY_PAYMENT_BEAN)
-    fun fastExternalService() =
-        PaymentExternalServiceImpl(
-            accountService
-        )
+    fun paymentManagerBean() = PaymentManager()
 }

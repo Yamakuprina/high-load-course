@@ -12,6 +12,7 @@ import ru.quipy.orders.api.OrderPaymentStartedEvent
 import ru.quipy.payments.api.PaymentAggregate
 import ru.quipy.payments.config.ExternalServicesConfig
 import ru.quipy.payments.logic.PaymentAggregateState
+import ru.quipy.payments.logic.PaymentManager
 import ru.quipy.payments.logic.PaymentService
 import ru.quipy.payments.logic.create
 import ru.quipy.streams.AggregateSubscriptionsManager
@@ -30,30 +31,13 @@ class OrderPaymentSubscriber {
     lateinit var subscriptionsManager: AggregateSubscriptionsManager
 
     @Autowired
-    private lateinit var paymentESService: EventSourcingService<UUID, PaymentAggregate, PaymentAggregateState>
-
-    @Autowired
-    @Qualifier(ExternalServicesConfig.PRIMARY_PAYMENT_BEAN)
-    private lateinit var paymentService: PaymentService
-
-    private val paymentExecutor = Executors.newFixedThreadPool(128, NamedThreadFactory("payment-executor"))
+    lateinit var paymentManager: PaymentManager
 
     @PostConstruct
     fun init() {
         subscriptionsManager.createSubscriber(OrderAggregate::class, "payments:order-subscriber", retryConf = RetryConf(1, RetryFailedStrategy.SKIP_EVENT)) {
             `when`(OrderPaymentStartedEvent::class) { event ->
-                paymentExecutor.submit {
-                    val createdEvent = paymentESService.create {
-                        it.create(
-                            event.paymentId,
-                            event.orderId,
-                            event.amount
-                        )
-                    }
-                    logger.info("Payment ${createdEvent.paymentId} for order ${event.orderId} created.")
-
-                    paymentService.submitPaymentRequest(createdEvent.paymentId, event.amount, event.createdAt)
-                }
+               paymentManager.processPayment(event.paymentId, event.orderId, event.amount, event.createdAt)
             }
         }
     }
